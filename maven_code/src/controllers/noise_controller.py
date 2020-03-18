@@ -2,12 +2,16 @@ from modules.agents import REGISTRY as agent_REGISTRY
 from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
 
+from .com_obs_attender import ComObsAttender
+
 
 # This multi-agent controller shares parameters between agents
 class NoiseMAC:
-    def __init__(self, scheme, groups, args):
+    def __init__(self, scheme, groups, args, env=None):
         self.n_agents = args.n_agents
         self.args = args
+        self.obs_attender = ComObsAttender(env)
+        scheme['obs']['aug_vshape'] = self.obs_attender.getObsSize()
         input_shape = self._get_input_shape(scheme)
         self._build_agents(input_shape)
         self.agent_output_type = args.agent_output_type
@@ -57,13 +61,14 @@ class NoiseMAC:
         self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
 
     def parameters(self):
-        return self.agent.parameters()
+        return list(self.agent.parameters()) + list(self.obs_attender.parameters())
 
     def load_state(self, other_mac):
         self.agent.load_state_dict(other_mac.agent.state_dict())
 
     def cuda(self):
         self.agent.cuda()
+        self.obs_attender.cuda()
 
     def save_models(self, path):
         th.save(self.agent.state_dict(), "{}/agent.th".format(path))
@@ -79,7 +84,7 @@ class NoiseMAC:
         # Other MACs might want to e.g. delegate building inputs to each agent
         bs = batch.batch_size
         inputs = []
-        inputs.append(batch["obs"][:, t])  # b1av
+        inputs.append(self.obs_attender.forward(batch["obs"][:, t]))  # b1av
         if self.args.obs_last_action:
             if t == 0:
                 inputs.append(th.zeros_like(batch["actions_onehot"][:, t]))
@@ -92,7 +97,7 @@ class NoiseMAC:
         return inputs
 
     def _get_input_shape(self, scheme):
-        input_shape = scheme["obs"]["vshape"]
+        input_shape = scheme['obs']["aug_vshape"]
         if self.args.obs_last_action:
             input_shape += scheme["actions_onehot"]["vshape"][0]
         if self.args.obs_agent_id:

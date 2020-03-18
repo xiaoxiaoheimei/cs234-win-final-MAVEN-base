@@ -15,6 +15,7 @@ from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
 
+import pdb
 
 def run(_run, _config, _log):
 
@@ -104,9 +105,10 @@ def run_sequential(args, logger):
     buffer = ReplayBuffer(scheme, groups, args.buffer_size, env_info["episode_limit"] + 1,
                           preprocess=preprocess,
                           device="cpu" if args.buffer_cpu_only else args.device)
+    pdb.set_trace()
 
     # Setup multiagent controller here
-    mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args)
+    mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args, env=runner.get_env())
 
     # Give runner the scheme
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)

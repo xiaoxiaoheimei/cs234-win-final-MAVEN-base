@@ -21,6 +21,7 @@ class ParallelRunner:
         env_fn = env_REGISTRY[self.args.env]
         self.ps = [Process(target=env_worker, args=(worker_conn, CloudpickleWrapper(partial(env_fn, env_args=self.args.env_args, args=self.args))))
                             for worker_conn in self.worker_conns]
+        self.env = env_fn(env_args=self.args.env_args, args=args)
 
         for p in self.ps:
             p.daemon = True
@@ -68,6 +69,9 @@ class ParallelRunner:
 
     def get_env_info(self):
         return self.env_info
+
+    def get_env(self):
+        return self.env
 
     def save_replay(self):
         pass

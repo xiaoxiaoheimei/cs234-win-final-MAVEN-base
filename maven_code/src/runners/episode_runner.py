@@ -3,6 +3,8 @@ from functools import partial
 from components.episode_buffer import EpisodeBatch
 import numpy as np
 
+import pdb
+
 
 class EpisodeRunner:
 
@@ -33,6 +35,9 @@ class EpisodeRunner:
 
     def get_env_info(self):
         return self.env.get_env_info()
+
+    def get_env(self):
+        return self.env
 
     def save_replay(self):
         self.env.save_replay()
