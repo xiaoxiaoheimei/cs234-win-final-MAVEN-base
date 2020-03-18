@@ -203,7 +203,7 @@ class SC2(MultiAgentEnv):
                 raw = True, # raw, feature-level data
                 score = True)
 
-        self._sc2_proc = self._run_config.start(version=self.game_version, window_size=self.window_size)
+        self._sc2_proc = self._run_config.start(window_size=self.window_size)
         self.controller = self._sc2_proc.controller
 
         # Create the game.

@@ -30,6 +30,8 @@ noise_dim: 2
 
 mi_loss: 1
 
+rnn_discrim: False
+rnn_agg_size: 32
 discrim_size: 32
 discrim_layers: 1
 

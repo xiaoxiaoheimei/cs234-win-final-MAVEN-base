@@ -12,6 +12,7 @@ from utils.logging import get_logger
 import yaml
 
 from run import run
+import pdb
 
 SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
 logger = get_logger()
@@ -28,10 +29,11 @@ def my_main(_run, _config, _log, env_args):
     # Setting the random seed throughout the modules
     np.random.seed(_config["seed"])
     th.manual_seed(_config["seed"])
-    env_args['seed'] = _config["seed"]
+    config = config_copy(_config)
+    config['env_args']['seed'] = config['seed']
 
     # run the framework
-    run(_run, _config, _log)
+    run(_run, config, _log)
 
 
 def _get_config(params, arg_name, subfolder):
@@ -50,6 +52,13 @@ def _get_config(params, arg_name, subfolder):
                 assert False, "{}.yaml error: {}".format(config_name, exc)
         return config_dict
 
+def config_copy(config):
+    if isinstance(config, dict):
+        return {k: config_copy(v) for k, v in config.items()}
+    elif isinstance(config, list):
+        return [config_copy(v) for v in config]
+    else:
+        return deepcopy(config)
 
 def recursive_dict_update(d, u):
     for k, v in u.items():

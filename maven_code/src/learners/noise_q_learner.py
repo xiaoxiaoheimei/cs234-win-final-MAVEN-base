@@ -6,6 +6,7 @@ from modules.mixers.noise_mix import QMixer as NoiseQMixer
 import torch as th
 from torch.optim import RMSprop
 import numpy as np
+import pdb
 
 
 class QLearner:
@@ -82,10 +83,11 @@ class QLearner:
         target_mac_out[avail_actions[:, 1:] == 0] = -9999999  # From OG deepmarl
 
         # Max over target Q-Values
+        m_t = (avail_actions == 0).float()
+        mac_out_t = (1. - m_t)*mac_out + m_t*(-9999999.)
         if self.args.double_q:
             # Get actions that maximise live Q (for double q-learning)
-            mac_out[avail_actions == 0] = -9999999
-            cur_max_actions = mac_out[:, 1:].max(dim=3, keepdim=True)[1]
+            cur_max_actions = mac_out_t[:, 1:].max(dim=3, keepdim=True)[1]
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
         else:
             target_max_qvals = target_mac_out.max(dim=3)[0]
@@ -96,11 +98,10 @@ class QLearner:
             target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:], noise)
 
         # Discriminator
-        mac_out[avail_actions == 0] = -9999999
-        q_softmax_actions = th.nn.functional.softmax(mac_out[:, :-1], dim=3)
+        q_softmax_actions = th.nn.functional.softmax(mac_out_t[:, :-1], dim=3)
 
         if self.args.hard_qs:
-            maxs = th.max(mac_out[:, :-1], dim=3, keepdim=True)[1]
+            maxs = th.max(mac_out_t[:, :-1], dim=3, keepdim=True)[1]
             zeros = th.zeros_like(q_softmax_actions)
             zeros.scatter_(dim=3, index=maxs, value=1)
             q_softmax_actions = zeros
